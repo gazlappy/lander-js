@@ -155,7 +155,10 @@ export class Hud {
     // Landing light: green when a touchdown now would be safe
     let state = 'off';
     if (ship.landed) state = 'down';
-    else if (alt < 40) state = v.length() <= PHYSICS.landingSpeed && ship.tiltAngle <= PHYSICS.landingTilt ? 'safe' : 'danger';
+    else if (alt < 40) {
+      const impact = Math.abs(v.x) + Math.abs(v.y) + Math.abs(v.z);
+      state = impact < PHYSICS.landingSpeed && ship.tiltAngle <= PHYSICS.landingTilt ? 'safe' : 'danger';
+    }
     this.landLight.className = `hud-land ${state}`;
     this.landLight.textContent = ship.landed ? (ship.pad ? 'ON PAD' : 'LANDED') : 'LAND';
     this.modeTag.textContent = game.input.hoverLatch ? 'HOVER HOLD' : '';

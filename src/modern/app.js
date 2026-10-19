@@ -230,8 +230,8 @@ export function createModernApp({ container, onSwitch }) {
 
   function updatePlaying(dt) {
     const controls = input.read(dt);
-    const [aimX, aimZ] = chase.toWorld(controls.aimRight, controls.aimUp);
-    const events = ship.update(dt, { aimX, aimZ, thrust: controls.thrust, hover: controls.hover }, game);
+    controls.heading = chase.heading;
+    const events = ship.update(dt, controls, game);
     handleShipEvents(events);
     if (ship.destroyed) return;
 

@@ -1,12 +1,20 @@
-// Mouse and keyboard for the modern version. The mouse works like the
-// original: moving it sets how far and which way the ship tilts, as a
-// virtual stick that stays where you leave it. WASD or the arrow keys
-// tilt too, and spring back when released.
+// Mouse and keyboard for the modern version. The mouse is read exactly as
+// the retro version and the 1987 original read it: a position in
+// 0-1279 x 0-1023 (y up) that the ship's tilt follows, recentred at the
+// start of each life. With pointer lock, moving the mouse moves that
+// position (like the Archimedes mouse); without it, the pointer's place
+// over the screen does. WASD or the arrow keys push the position off
+// centre while held.
+
+const MOUSE_MAX_X = 1279;
+const MOUSE_MAX_Y = 1023;
+const MOUSE_START = 511;
+const KEY_REACH = 420;     // how far the keys move the mouse from where it is
 
 const KEYS = {
-  thrust: ['Space', 'KeyK'],
+  thrust: ['Space', 'KeyZ', 'KeyK'],
   hover: ['ShiftLeft', 'ShiftRight', 'KeyL'],
-  fire: ['KeyF', 'KeyJ', 'ControlLeft'],
+  fire: ['KeyF', 'KeyX', 'KeyJ', 'ControlLeft'],
 };
 
 export class ModernInput {
@@ -15,10 +23,10 @@ export class ModernInput {
     this.enabled = false;
     this.sensitivity = 1;
     this.swapButtons = false;
-    this.stick = { x: 0, y: 0 };        // mouse stick, -1..1, y up
+    this.mouse = { x: MOUSE_START, y: MOUSE_START };
     this.keyStick = { x: 0, y: 0 };
     this.keys = new Set();
-    this.mouse = { left: false, middle: false, right: false };
+    this.buttons = { left: false, middle: false, right: false };
     this.hoverLatch = false;
     this.handlers = {};
     this.wasLocked = false;
@@ -35,32 +43,39 @@ export class ModernInput {
 
   release() {
     if (this.locked) document.exitPointerLock();
-    this.mouse.left = this.mouse.middle = this.mouse.right = false;
+    this.buttons.left = this.buttons.middle = this.buttons.right = false;
     this.keys.clear();
   }
 
-  centre() { this.stick.x = 0; this.stick.y = 0; }
+  centre() {
+    this.mouse.x = MOUSE_START;
+    this.mouse.y = MOUSE_START;
+  }
 
-  // Current controls in screen space: aim right/up (-1..1) and buttons
+  // Current controls: the mouse position the game sees, and buttons
   read(dt) {
     const k = this.keys;
     const kx = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
     const ky = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
-    const ease = Math.min(1, dt * 4);
-    this.keyStick.x += (kx * 0.85 - this.keyStick.x) * ease;
-    this.keyStick.y += (ky * 0.85 - this.keyStick.y) * ease;
-    let x = this.stick.x + this.keyStick.x, y = this.stick.y + this.keyStick.y;
-    const len = Math.hypot(x, y);
-    if (len > 1) { x /= len; y /= len; }
+    const ease = Math.min(1, dt * 5);
+    this.keyStick.x += (kx - this.keyStick.x) * ease;
+    this.keyStick.y += (ky - this.keyStick.y) * ease;
     const held = (names) => names.some((n) => k.has(n));
-    const primary = this.swapButtons ? this.mouse.right : this.mouse.left;
-    const secondary = this.swapButtons ? this.mouse.left : this.mouse.right;
+    const primary = this.swapButtons ? this.buttons.right : this.buttons.left;
+    const secondary = this.swapButtons ? this.buttons.left : this.buttons.right;
     return {
-      aimRight: x, aimUp: y,
+      mouseX: Math.max(0, Math.min(MOUSE_MAX_X, this.mouse.x + this.keyStick.x * KEY_REACH)),
+      mouseY: Math.max(0, Math.min(MOUSE_MAX_Y, this.mouse.y - this.keyStick.y * KEY_REACH)),
       thrust: primary || held(KEYS.thrust),
-      hover: this.mouse.middle || held(KEYS.hover) || this.hoverLatch,
+      hover: this.buttons.middle || held(KEYS.hover),
+      hoverHold: this.hoverLatch,
       fire: secondary || held(KEYS.fire),
     };
+  }
+
+  // How far the mouse is from centre, -1..1 each way (for the HUD)
+  get offset() {
+    return { x: (Math.min(this.mouse.x, 1023) - 512) / 512, y: (512 - this.mouse.y) / 512 };
   }
 
   bind() {
@@ -72,31 +87,31 @@ export class ModernInput {
     });
     document.addEventListener('mousemove', (e) => {
       if (!this.enabled) return;
+      const m = this.mouse;
       if (this.locked) {
-        const s = 0.0028 * this.sensitivity;
-        this.stick.x += e.movementX * s;
-        this.stick.y -= e.movementY * s;
-        const len = Math.hypot(this.stick.x, this.stick.y);
-        if (len > 1) { this.stick.x /= len; this.stick.y /= len; }
+        // Two mouse units per pixel, as the retro version
+        const s = 2 * this.sensitivity;
+        m.x = Math.round(Math.max(0, Math.min(MOUSE_MAX_X, m.x + e.movementX * s)));
+        m.y = Math.round(Math.max(0, Math.min(MOUSE_MAX_Y, m.y - e.movementY * s)));
       } else if (e.target === canvas) {
         const r = canvas.getBoundingClientRect();
-        const s = 2.2 * this.sensitivity;
-        this.stick.x = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width - 0.5) * s));
-        this.stick.y = Math.max(-1, Math.min(1, -((e.clientY - r.top) / r.height - 0.5) * s));
+        const s = 1024 * this.sensitivity;
+        m.x = Math.round(Math.max(0, Math.min(MOUSE_MAX_X, 512 + ((e.clientX - r.left) / r.width - 0.5) * s)));
+        m.y = Math.round(Math.max(0, Math.min(MOUSE_MAX_Y, 512 - ((e.clientY - r.top) / r.height - 0.5) * s)));
       }
     });
     canvas.addEventListener('mousedown', (e) => {
       if (!this.enabled) return;
       e.preventDefault();
       if (!this.locked) this.lock();
-      if (e.button === 0) this.mouse.left = true;
-      if (e.button === 1) this.mouse.middle = true;
-      if (e.button === 2) this.mouse.right = true;
+      if (e.button === 0) this.buttons.left = true;
+      if (e.button === 1) this.buttons.middle = true;
+      if (e.button === 2) this.buttons.right = true;
     });
     document.addEventListener('mouseup', (e) => {
-      if (e.button === 0) this.mouse.left = false;
-      if (e.button === 1) this.mouse.middle = false;
-      if (e.button === 2) this.mouse.right = false;
+      if (e.button === 0) this.buttons.left = false;
+      if (e.button === 1) this.buttons.middle = false;
+      if (e.button === 2) this.buttons.right = false;
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('keydown', (e) => {
@@ -115,6 +130,6 @@ export class ModernInput {
       if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
     });
     document.addEventListener('keyup', (e) => this.keys.delete(e.code));
-    window.addEventListener('blur', () => { this.keys.clear(); this.mouse.left = this.mouse.middle = this.mouse.right = false; });
+    window.addEventListener('blur', () => { this.keys.clear(); this.buttons.left = this.buttons.middle = this.buttons.right = false; });
   }
 }

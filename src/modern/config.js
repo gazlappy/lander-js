@@ -9,11 +9,26 @@ export const WORLD = {
   seaLevel: 0,
 };
 
+// The ship handles exactly like the 1987 original (and the retro version):
+// the original's per-tick physics are converted to metres and seconds using
+// the retro version's default 20 ticks a second and a tile of 4.2 m (the
+// size the classic hull is scaled to).
+const TICKS = 20;
+const TILE = 4.2;
+const perTick2 = TILE * TICKS * TICKS;   // tiles/tick^2 -> m/s^2
+
 export const PHYSICS = {
-  gravity: 9.0,
-  landingSpeed: 6.5,      // max impact speed for a safe touchdown (m/s)
+  ticks: TICKS,
+  tile: TILE,
+  gravity: (0x30000 / 2 ** 24) * perTick2,        // 19.7 m/s^2
+  fullThrust: (1 / 16) * perTick2,                // 105 m/s^2 along the floor
+  hoverThrust: (1 / 64) * perTick2,               // 26 m/s^2
+  friction: TICKS * Math.log(64 / 63),            // velocity loses 1/64 a tick
+  // Safe touchdown: |vx| + |vy| + |vz| under 1/8 tile a tick, as the original
+  landingSpeed: (1 / 8) * TILE * TICKS,           // 10.5 m/s
   landingTilt: 0.42,      // max tilt for a safe touchdown (radians)
-  crashDamagePerMs: 9,    // hull damage per m/s over the landing speed
+  crashDamagePerMs: 6,    // hull damage per m/s over the landing speed
+  ceiling: 650,           // engines weaken above this height
 };
 
 // Graphics presets: view distance in chunks, terrain detail, shadows,

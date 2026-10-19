@@ -31,18 +31,23 @@ Then open <http://localhost:8000>. It also works as-is on GitHub Pages.
 
 | Input                   | Action |
 |-------------------------|--------|
-| Mouse / WASD            | Tilt the ship. The mouse is a virtual stick that stays where you leave it; `R` recentres it |
-| Left button / `Space`   | Full thrust |
-| Middle button / `Shift` | Hover: holds your height while you tilt. `H` latches hover on and off |
-| Right button / `F`      | Fire |
+| Mouse / WASD            | Tilt the ship: how far the mouse is from the centre sets the tilt, its direction sets which way. `R` recentres |
+| Left button / `Space` / `Z` | Full thrust |
+| Middle button / `Shift` | Hover (gentle thrust). `H` toggles an optional hover hold that keeps your height |
+| Right button / `F` / `X` | Fire |
 | `C`                     | Classic camera (fixed heading, like 1987) or chase camera |
 | `M`                     | Enlarge the minimap |
 | `Esc` / `P`             | Pause |
 
-You steer the way the original did: tilt the ship, and the engine pushes
-along its floor. Touch down gently and level; the **LAND** light turns
-green when a landing would be safe. Sit on a friendly pad to refuel and
-repair.
+The ship flies exactly like the 1987 original and the retro version, using
+the same mouse handling, coarse polar maths (with its small dead zone in
+the middle), tilt easing, thrust, hover, gravity, friction and fuel burn. The
+original's per-tick numbers are converted at 20 ticks a second and 4.2 m a
+tile (`PHYSICS` in `config.js`). Flown through the same inputs, a modern ship
+stays within a tile or two of a retro one. The other craft scale the engine
+(`power`) and how fast the ship follows the mouse (`steer`). Touch down
+gently and level; the **LAND** light turns green when a landing would be
+safe. Sit on a friendly pad to refuel and repair.
 
 ### What's in it
 
@@ -77,7 +82,7 @@ src/modern/
   environment.js   sky, sun and shadows, fog, sea, bloom
   models.js        procedural low-poly models for craft, scenery, enemies, props
   crafts.js        craft stats
-  ship.js          flight model, landing, damage, refuelling
+  ship.js          the original's flight model, landing, damage, refuelling
   camera.js        classic and chase cameras
   input.js         mouse stick, keys, pointer lock
   particles.js     GPU point sprites for exhaust, smoke, explosions, tracers

@@ -10,8 +10,8 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 // Craft stats scaled to 0..1 for the hangar bars
 function craftStats(c) {
   return [
-    ['Thrust', c.thrust / 32],
-    ['Agility', c.tiltRate / 4.5],
+    ['Thrust', c.power / 1.3],
+    ['Agility', c.steer / 1.5],
     ['Fuel', c.fuel / 200],
     ['Hull', c.hull / 200],
     ['Firepower', (c.gun.damage / c.gun.interval) / 22],

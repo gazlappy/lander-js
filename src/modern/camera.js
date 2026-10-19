@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { heightAt } from './terrain.js';
 
 // Third-person camera. In "classic" mode it keeps a fixed heading, like
-// the original's view, so screen directions always match world directions.
-// In "chase" mode it swings round behind the ship as it turns.
+// the original's view, so the mouse always tilts the ship the same way
+// on screen. In "chase" mode it swings round behind the direction of
+// travel, and the controls turn with it.
 
 export class ChaseCamera {
   constructor(camera) {
@@ -18,15 +19,20 @@ export class ChaseCamera {
   }
 
   snapTo(ship) {
-    this.heading = this.mode === 'chase' ? ship.yaw : 0;
+    if (this.mode !== 'chase') this.heading = 0;
     this.update(1, ship, true);
   }
 
   update(dt, ship, snap = false) {
     if (this.mode === 'chase') {
-      let d = ship.yaw - this.heading;
-      d = Math.atan2(Math.sin(d), Math.cos(d));
-      this.heading += d * Math.min(1, dt * 1.6);
+      // Follow the direction of travel once moving, so turning the view
+      // doesn't feed back into the controls while hovering
+      const flat = Math.hypot(ship.velocity.x, ship.velocity.z);
+      if (flat > 6) {
+        let d = Math.atan2(ship.velocity.x, ship.velocity.z) - this.heading;
+        d = Math.atan2(Math.sin(d), Math.cos(d));
+        this.heading += d * Math.min(1, dt * 0.8 * Math.min(flat / 20, 1));
+      }
     } else {
       this.heading += (0 - this.heading) * Math.min(1, dt * 3);
     }
@@ -53,12 +59,5 @@ export class ChaseCamera {
       this.shake = Math.max(0, this.shake - dt * 4);
     }
     this.camera.lookAt(this.lookAt);
-  }
-
-  // Turn a screen-space aim (right, up) into world x/z for the controls
-  toWorld(right, up) {
-    const s = Math.sin(this.heading), c = Math.cos(this.heading);
-    // Camera forward is (s, c) on the ground; its right is (-c, s)
-    return [right * -c + up * s, right * s + up * c];
   }
 }
