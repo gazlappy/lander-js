@@ -2,7 +2,11 @@
 // object map is laid out exactly as it was in 1987.
 
 export class Random {
-  constructor(seed1 = 0x4F9C3490, seed2 = 0xDA0383CF) {
+  constructor() {
+    this.reseed();
+  }
+
+  reseed(seed1 = 0x4F9C3490, seed2 = 0xDA0383CF) {
     this.seed1 = seed1 | 0;
     this.seed2 = seed2 | 0;
   }

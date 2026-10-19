@@ -47,6 +47,16 @@ export class Game {
 
   get playing() { return this.state === PLAYING; }
 
+  // Start over exactly as the original did when first loaded: same seeds,
+  // so the same world. (Restarting after game over carries on the random
+  // sequence instead, as the original did, giving a fresh world.)
+  freshGame() {
+    this.random.reseed();
+    this.particles.clear();
+    this.tick = 0;
+    this.newGame();
+  }
+
   newGame() {
     if (this.score > this.highScore) this.highScore = this.score;
     this.score = INITIAL_SCORE;

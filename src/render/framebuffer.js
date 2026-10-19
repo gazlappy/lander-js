@@ -81,20 +81,53 @@ export class FrameBuffer {
 
   // 8x8 text on the 40x32 character grid
   text(col, row, str, fg, bg) {
+    this.textAt(col * 8, row * 8, str.slice(0, Math.max(40 - col, 0)), fg, bg);
+  }
+
+  // Text at a screen pixel position, with each glyph pixel `size` pixels
+  // square. A null background leaves the pixels behind the text alone.
+  textAt(x, y, str, fg, bg = null, size = 1) {
     const s = this.scale;
+    const dot = size * s;
     for (let i = 0; i < str.length; i++) {
-      const c = col + i;
-      if (c >= 40) break;
       const glyph = FONT[str.charCodeAt(i) - 32] || FONT[0];
       for (let gy = 0; gy < 8; gy++) {
         const bits = glyph[gy];
         for (let gx = 0; gx < 8; gx++) {
           const colour = bits & (0x80 >> gx) ? fg : bg;
-          const px = (c * 8 + gx) * s, py = (row * 8 + gy) * s;
-          for (let yy = 0; yy < s; yy++) {
-            this.pixels.fill(colour, (py + yy) * this.width + px, (py + yy) * this.width + px + s);
+          if (colour === null) continue;
+          const px = (x + (i * 8 + gx) * size) * s, py = (y + gy * size) * s;
+          if (px < 0 || py < 0 || px + dot > this.width || py + dot > this.height) continue;
+          for (let yy = 0; yy < dot; yy++) {
+            const row = (py + yy) * this.width;
+            this.pixels.fill(colour, row + px, row + px + dot);
           }
         }
+      }
+    }
+  }
+
+  static textWidth(str, size = 1) {
+    return str.length * 8 * size;
+  }
+
+  // Scale every pixel's brightness by `amount` (0-1)
+  darken(amount) {
+    const p = this.pixels;
+    const k = Math.round(amount * 256);
+    for (let i = 0; i < p.length; i++) {
+      const c = p[i];
+      p[i] = (0xFF000000 | ((((c >> 16) & 255) * k >> 8) << 16) | ((((c >> 8) & 255) * k >> 8) << 8) | (((c & 255) * k) >> 8)) >>> 0;
+    }
+  }
+
+  // Copy another framebuffer's pixels, resampling if the scales differ
+  copyFrom(other) {
+    if (other.width === this.width) { this.pixels.set(other.pixels); return; }
+    for (let y = 0; y < this.height; y++) {
+      const sy = Math.floor((y * other.height) / this.height) * other.width;
+      for (let x = 0; x < this.width; x++) {
+        this.pixels[y * this.width + x] = other.pixels[sy + Math.floor((x * other.width) / this.width)];
       }
     }
   }

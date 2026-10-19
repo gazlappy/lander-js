@@ -1,38 +1,20 @@
 import { Game, GAME_OVER } from './game.js';
-import { Input } from './ui/input.js';
+import { Input, screenPoint } from './ui/input.js';
+import { Menu } from './ui/menu.js';
+import { Settings } from './settings.js';
+import { serialise, restore } from './core/save.js';
+import { FrameBuffer } from './render/framebuffer.js';
 
 const canvas = document.getElementById('screen');
 const ctx = canvas.getContext('2d');
-const overlay = document.getElementById('overlay');
-const overlayTitle = document.getElementById('overlay-title');
-const overlayText = document.getElementById('overlay-text');
-const settings = {
-  speed: document.getElementById('speed'),
-  scale: document.getElementById('scale'),
-  colour: document.getElementById('colour'),
-  sensitivity: document.getElementById('sensitivity'),
-};
-const fsButton = document.getElementById('fullscreen');
+const stage = document.getElementById('stage');
 const fpsLabel = document.getElementById('fps');
 
-const STORAGE_KEY = 'lander-js';
-
-function load() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
-}
-function save(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...load(), ...data })); } catch { /* storage unavailable */ }
-}
-
-const prefs = load();
-for (const [key, el] of Object.entries(settings)) {
-  if (prefs[key] !== undefined) el.value = String(prefs[key]);
-}
-
+const settings = new Settings();
 const game = new Game({
-  scale: Number(settings.scale.value),
-  trueColour: settings.colour.value === 'true',
-  highScore: prefs.highScore,
+  scale: settings.get('scale'),
+  trueColour: settings.get('trueColour'),
+  highScore: settings.highScore,
 });
 
 let image = null;
@@ -48,59 +30,67 @@ function present() {
   ctx.putImageData(image, 0, 0);
 }
 
-let running = false;
-let started = false;
+// 'menu' or 'play'
+let mode = 'menu';
+// True once a game has been started or continued in this visit
+let sessionActive = false;
+// What the menu draws behind itself: the last frame of the game
+let backdrop = null;
+
+function snapshotBackdrop() {
+  backdrop = new FrameBuffer(game.frame.scale);
+  backdrop.pixels.set(game.frame.pixels);
+}
+
+function saveProgress() {
+  if (sessionActive) settings.saveGame(serialise(game));
+}
+
+function recordHighScore() {
+  if (game.highScore !== settings.highScore) settings.saveHighScore(game.highScore);
+}
+
+// --- Playing -----------------------------------------------------------------
+
 let accumulator = 0;
 let lastTime = 0;
 let ticks = 0, fpsTime = 0;
 
 const input = new Input(canvas, game, {
-  onPauseRequest: () => pause(),
+  onPauseRequest: () => openMenu(),
   onKey: () => {
     if (game.state === GAME_OVER) {
       game.newGame();
-      save({ highScore: game.highScore });
+      recordHighScore();
     }
   },
 });
-input.sensitivity = Number(settings.sensitivity.value);
+input.sensitivity = settings.get('sensitivity');
 
-function showOverlay(title, html) {
-  overlayTitle.textContent = title;
-  overlayText.innerHTML = html;
-  overlay.hidden = false;
-}
-
-function start() {
-  overlay.hidden = true;
-  running = true;
-  started = true;
+function startPlay() {
+  mode = 'play';
   input.enabled = true;
-  lastTime = performance.now();
   accumulator = 0;
+  lastTime = performance.now();
   input.lock();
-}
-
-function pause() {
-  if (!running) return;
-  running = false;
-  input.enabled = false;
-  input.release();
-  showOverlay('Paused', 'Click to carry on');
 }
 
 function frame(now) {
   requestAnimationFrame(frame);
-  if (!running) return;
-  const tickLength = 1000 / Number(settings.speed.value);
+  if (mode !== 'play') return;
+  const tickLength = 1000 / settings.get('speed');
   accumulator += Math.min(now - lastTime, 250);
   lastTime = now;
   let changed = false;
   while (accumulator >= tickLength) {
     accumulator -= tickLength;
-    const before = game.highScore;
+    const wasOver = game.state === GAME_OVER;
     if (game.step(input.buttons)) { changed = true; ticks++; }
-    if (game.highScore !== before) save({ highScore: game.highScore });
+    if (game.state === GAME_OVER && !wasOver) {
+      if (game.score > game.highScore) game.highScore = game.score;
+      recordHighScore();
+      settings.saveGame(null);
+    }
   }
   if (changed) present();
   if (now - fpsTime >= 1000) {
@@ -110,31 +100,91 @@ function frame(now) {
   }
 }
 
-overlay.addEventListener('click', start);
+// --- Menu --------------------------------------------------------------------
 
-for (const [key, el] of Object.entries(settings)) {
-  el.addEventListener('change', () => {
-    save({ [key]: el.value });
-    if (key === 'scale' || key === 'colour') {
-      game.setGraphics(Number(settings.scale.value), settings.colour.value === 'true');
-      resizeCanvas();
-      if (started) { game.step(0); present(); }
+const menu = new Menu(settings, {
+  newGame() {
+    game.freshGame();
+    recordHighScore();
+    sessionActive = true;
+    settings.saveGame(null);
+    startPlay();
+  },
+  carryOn() {
+    if (!sessionActive && settings.savedGame) {
+      if (!restore(game, settings.savedGame)) { settings.saveGame(null); drawMenu(); return; }
+      sessionActive = true;
     }
-    if (key === 'sensitivity') input.sensitivity = Number(el.value);
-    el.blur();
-  });
-}
-
-fsButton.addEventListener('click', () => {
-  const stage = document.getElementById('stage');
-  if (document.fullscreenElement) document.exitFullscreen();
-  else stage.requestFullscreen?.();
+    startPlay();
+  },
+  canCarryOn() {
+    return sessionActive ? game.state !== GAME_OVER : !!settings.savedGame;
+  },
+  isFullscreen: () => document.fullscreenElement === stage,
+  toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else stage.requestFullscreen?.().catch?.(() => {});
+  },
+  onSettingChanged(key, value) {
+    if (key === 'scale' || key === 'trueColour') {
+      game.setGraphics(settings.get('scale'), settings.get('trueColour'));
+      resizeCanvas();
+    }
+    if (key === 'sensitivity') input.sensitivity = value;
+  },
 });
 
-// Draw the opening scene behind the title overlay
+function drawMenu() {
+  menu.draw(game.frame, backdrop, game.colourOf);
+  present();
+}
+
+function openMenu() {
+  if (mode === 'menu') return;
+  mode = 'menu';
+  input.enabled = false;
+  input.release();
+  fpsLabel.textContent = '';
+  if (game.state !== GAME_OVER) saveProgress();
+  snapshotBackdrop();
+  menu.open('main');
+  drawMenu();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (mode !== 'menu') return;
+  if (menu.key(e.code)) {
+    e.preventDefault();
+    if (mode === 'menu') drawMenu();
+  }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (mode !== 'menu') return;
+  const [x, y] = screenPoint(canvas, e);
+  if (menu.hover(x, y)) drawMenu();
+});
+
+canvas.addEventListener('mousedown', (e) => {
+  if (mode !== 'menu') return;
+  e.preventDefault();
+  const [x, y] = screenPoint(canvas, e);
+  if (menu.click(x, y, e.button) && mode === 'menu') drawMenu();
+});
+
+document.addEventListener('fullscreenchange', () => { if (mode === 'menu') drawMenu(); });
+
+// Keep progress if the tab is closed or hidden mid-game
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && mode === 'play') saveProgress();
+});
+window.addEventListener('pagehide', () => { if (mode === 'play') saveProgress(); });
+
+// Start on the main menu, over the opening scene
 game.step(0);
-present();
-showOverlay('Lander', 'Click to play');
+snapshotBackdrop();
+menu.open('main');
+drawMenu();
 requestAnimationFrame(frame);
 
 // Exposed for debugging from the console

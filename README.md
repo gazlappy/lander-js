@@ -34,7 +34,16 @@ Then open <http://localhost:8000>. It also works as-is on GitHub Pages.
 | Left button / `Z`       | Full thrust |
 | Middle button / `Space` | Hover |
 | Right button / `X`      | Fire (each shot costs a point) |
-| `Esc` / `P`             | Pause |
+| `Esc` / `P`             | Pause and open the menu |
+
+The game opens on a main menu with New game, Continue, Options and Credits.
+Use the arrow keys and Enter, or the mouse; in Options, Left/Right or a
+left/right click changes a setting. Progress is saved in the browser
+whenever you pause or leave the page, so Continue resumes the exact game,
+including the particles in flight, even after a reload. New game always
+starts from the original's 1987 world. Restarting after game over carries
+on the random sequence instead, as the original did, so you get a different
+world.
 
 Click the screen to capture the mouse. If the browser won't allow pointer
 lock, the pointer's position over the screen steers instead.
@@ -45,9 +54,11 @@ lock, the pointer's position over the screen steers instead.
 src/
   config.js            every tunable constant: physics, scoring, sizes, screen
   game.js              game state machine and the per-tick update order
-  main.js              page wiring: fixed-rate loop, settings, canvas
+  main.js              page wiring: menu/play modes, fixed-rate loop, canvas
+  settings.js          options (speed, resolution, colours, mouse) and storage
   core/
     random.js          the original's shift-register RNG
+    save.js            snapshot and restore a game in progress for Continue
     maths.js           orientation matrix, mouse-to-polar conversion
   world/
     terrain.js         the six-sine-wave landscape and tile colours
@@ -63,6 +74,7 @@ src/
     font.js            8x8 system-style font
   ui/
     hud.js             score bar, lives, high score and fuel gauge
+    menu.js            main menu, options and credits, drawn in the game's font
     input.js           mouse (pointer lock or absolute) and keyboard
 ```
 
@@ -85,6 +97,10 @@ tick runs these steps in the original's main-loop order:
   in `OBJECT_TYPES`. `ObjectMap.populate` decides where things go.
 * **New particle effects**: add a spawner to `ParticleSystem` built from the
   behaviour flags (`FALLS`, `BOUNCES`, `SPLASHES`, `DESTROYS`, `EXPLODES`).
+* **Menus**: screens are lists of items in `Menu.items()`. An item has
+  either `run` (a button) or `adjust` (an option that cycles). New options go
+  in `SETTINGS` in `src/settings.js` and show up in the Options screen
+  automatically.
 * **Graphics**: `FrameBuffer` is a plain RGBA software renderer, and the
   Resolution setting already renders at up to 4x. Swapping it for WebGL means
   replacing `FrameBuffer` and `Scene.drawLayer`.
@@ -95,7 +111,7 @@ tick runs these steps in the original's main-loop order:
   `Math.sin`/`Math.atan2` for smoother controls.
 
 The game runs at a fixed tick rate (20 per second by default; the original ran
-at roughly 17 on an 8 MHz A310). Physics are per tick, so the Speed setting
+at roughly 17 on an 8 MHz A310). Physics are per tick, so the Game speed option
 changes how fast the game plays as well as how smooth it looks.
 
 ## Credits
