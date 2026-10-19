@@ -25,6 +25,7 @@ export class Combat {
     this.projectiles = [];
     this.enemies = [];
     this.callbacks = {};
+    this.prev = new THREE.Vector3();
   }
 
   // Remove every enemy, shell and meteor (between missions)
@@ -90,16 +91,43 @@ export class Combat {
 
   // --- Firing ---------------------------------------------------------------------
 
+  // Aim assist. Tilting to fly dips the nose, so the guns would only ever
+  // hit the ground. Instead, if an enemy lies within 30 degrees of the
+  // ship's heading (at any height), aim at where it will be when the shot
+  // arrives. With nothing to lock on to, fire along the nose.
+  assistedAim(ship, out) {
+    const g = ship.craft.gun;
+    const hx = Math.sin(ship.yaw), hz = Math.cos(ship.yaw);
+    let best = null, bestDot = 0.866;
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      const dx = e.position.x - ship.position.x, dz = e.position.z - ship.position.z;
+      const flat = Math.hypot(dx, dz);
+      const d = Math.hypot(flat, e.position.y - ship.position.y);
+      if (d > 450 || flat < 3) continue;
+      const dot = (dx * hx + dz * hz) / flat;
+      if (dot > bestDot) { bestDot = dot; best = e; }
+    }
+    this.target = best;
+    if (!best) return out.copy(ship.forward);
+    const t = best.position.distanceTo(ship.position) / g.speed;
+    const lead = best.position.clone();
+    if (best.velocity) lead.addScaledVector(best.velocity, t);
+    lead.y += 1.5 * t * t;     // allow for the shot's slight drop
+    return out.subVectors(lead, ship.position).sub(ship.velocity.clone().multiplyScalar(t)).normalize();
+  }
+
   firePlayer(ship, guns) {
     const g = ship.craft.gun;
+    const aim = this.assistedAim(ship, new THREE.Vector3());
     for (const p of guns) {
-      const dir = tmp.copy(ship.forward);
+      const dir = tmp.copy(aim);
       dir.x += (Math.random() - 0.5) * g.spread;
       dir.y += (Math.random() - 0.5) * g.spread;
       dir.z += (Math.random() - 0.5) * g.spread;
       dir.normalize();
       this.projectiles.push({
-        position: p.clone(), velocity: dir.multiplyScalar(g.speed).add(ship.velocity),
+        position: p.clone(), velocity: dir.clone().multiplyScalar(g.speed).add(ship.velocity),
         life: 2.2, damage: g.damage, owner: 'player',
       });
     }
@@ -196,7 +224,7 @@ export class Combat {
     while (i < list.length) {
       const b = list[i];
       b.life -= dt;
-      const prev = tmp.copy(b.position);
+      const prev = this.prev.copy(b.position);
       b.velocity.y -= 3 * dt;
       b.position.addScaledVector(b.velocity, dt);
       let hit = b.life <= 0;
