@@ -5,19 +5,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lander</title>
 <link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/three.module.js",
+    "three/addons/": "./vendor/three/addons/"
+  }
+}
+</script>
 </head>
 <body>
 <main>
   <header>
     <h1>LANDER</h1>
-    <div id="fps"></div>
+    <div class="header-right">
+      <div id="fps"></div>
+      <button id="switch">Switch version</button>
+    </div>
   </header>
 
   <div id="stage">
-    <canvas id="screen"></canvas>
+    <div id="retro" class="version" hidden>
+      <canvas id="retro-screen"></canvas>
+    </div>
+    <div id="modern" class="version" hidden>
+      <canvas class="modern-canvas"></canvas>
+      <div class="modern-hud"></div>
+      <div class="modern-menus"></div>
+      <div class="modern-loading">Loading the open world...</div>
+    </div>
   </div>
 
-  <section>
+  <section id="help-modern" hidden>
+    <h2>How to fly</h2>
+    <table>
+      <tr><td>Mouse / WASD</td><td>Tilt the ship. The mouse works like a stick that stays where you leave it (R recentres)</td></tr>
+      <tr><td>Left button / Space</td><td>Full thrust</td></tr>
+      <tr><td>Middle button / Shift</td><td>Hover: holds your height while you tilt. H toggles hover hold</td></tr>
+      <tr><td>Right button / F</td><td>Fire</td></tr>
+      <tr><td>C / M</td><td>Switch camera / enlarge the map</td></tr>
+      <tr><td>Esc / P</td><td>Pause</td></tr>
+    </table>
+    <p class="muted">Touch down gently (the LAND light turns green) and level. Sit on a friendly pad to refuel and repair.
+      Missions earn credits to buy new craft in the hangar.</p>
+  </section>
+
+  <section id="help-retro" hidden>
     <h2>How to play</h2>
     <table>
       <tr><td>Mouse position</td><td>Tilt the ship: how far from the centre sets the tilt, the direction sets which way</td></tr>
@@ -33,10 +66,10 @@
   </section>
 
   <footer class="muted">
-    A from-scratch JavaScript remake of David Braben's Lander (Acorn Archimedes, 1987), written with the help of
-    Mark Moxon's <a href="https://lander.bbcelite.com">fully documented source</a>.
+    Two takes on David Braben's Lander (Acorn Archimedes, 1987): a faithful retro remake and a modern open-world
+    version. Written with the help of Mark Moxon's <a href="https://lander.bbcelite.com">fully documented source</a>.
   </footer>
 </main>
-<script type="module" src="src/main.js"></script>
+<script type="module" src="src/shell.js"></script>
 </body>
 </html>

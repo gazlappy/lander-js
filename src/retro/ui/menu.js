@@ -23,7 +23,7 @@ const CREDITS = [
 
 export class Menu {
   // `actions` supplies newGame, carryOn, canCarryOn, toggleFullscreen,
-  // isFullscreen and onSettingChanged
+  // isFullscreen, onSettingChanged and switchVersion
   constructor(settings, actions) {
     this.settings = settings;
     this.actions = actions;
@@ -46,6 +46,7 @@ export class Menu {
         { label: 'Continue', run: () => a.carryOn(), enabled: a.canCarryOn() },
         { label: 'Options', run: () => this.open('options') },
         { label: 'Credits', run: () => this.open('credits') },
+        { label: 'Go modern', run: () => a.switchVersion() },
       ];
     }
     if (this.screen === 'options') {
@@ -162,7 +163,7 @@ export class Menu {
     this.heading(frame, c, 'LANDER', 5);
     this.centred(frame, 72, 'Acorn Archimedes 1987', c.dim);
     this.items().forEach((item, i) => {
-      const y = 104 + i * 24;
+      const y = 100 + i * 24;
       const chosen = i === this.selected;
       const colour = item.enabled === false ? c.off : chosen ? c.selected : c.text;
       const label = chosen ? `>${item.label}<` : item.label;
