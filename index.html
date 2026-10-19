@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lander</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>LANDER</h1>
+    <div id="fps"></div>
+  </header>
+
+  <div id="stage">
+    <canvas id="screen"></canvas>
+    <div id="overlay">
+      <div id="overlay-title">Lander</div>
+      <div id="overlay-text"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <label>Speed
+      <select id="speed">
+        <option value="17">Original (17 fps)</option>
+        <option value="20" selected>Classic (20 fps)</option>
+        <option value="25">Brisk (25 fps)</option>
+        <option value="33">Fast (33 fps)</option>
+      </select>
+    </label>
+    <label>Resolution
+      <select id="scale">
+        <option value="1">320×256 (original)</option>
+        <option value="2" selected>640×512</option>
+        <option value="3">960×768</option>
+        <option value="4">1280×1024</option>
+      </select>
+    </label>
+    <label>Colours
+      <select id="colour">
+        <option value="false" selected>Archimedes palette</option>
+        <option value="true">True colour</option>
+      </select>
+    </label>
+    <label>Mouse
+      <input id="sensitivity" type="range" min="0.25" max="3" step="0.25" value="1">
+    </label>
+    <button id="fullscreen">Fullscreen</button>
+  </div>
+
+  <section>
+    <h2>How to play</h2>
+    <table>
+      <tr><td>Mouse position</td><td>Tilt the ship: how far from the centre sets the tilt, the direction sets which way</td></tr>
+      <tr><td>Left button / Z</td><td>Full thrust</td></tr>
+      <tr><td>Middle button / Space</td><td>Hover</td></tr>
+      <tr><td>Right button / X</td><td>Fire (costs a point per shot)</td></tr>
+      <tr><td>Esc / P</td><td>Pause</td></tr>
+    </table>
+    <p class="muted">Shoot trees and buildings for 20 points each. Land gently on the grey launchpad to refuel.
+      Score 800 or more and rocks start falling from the sky, and gravity gets stronger at 1024 and 1488.</p>
+  </section>
+
+  <footer class="muted">
+    A from-scratch JavaScript remake of David Braben's Lander (Acorn Archimedes, 1987), written with the help of
+    Mark Moxon's <a href="https://lander.bbcelite.com">fully documented source</a>.
+  </footer>
+</main>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
