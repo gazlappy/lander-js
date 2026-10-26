@@ -1,8 +1,9 @@
 import { createRetroApp } from './retro/app.js';
 
 // Hosts the main page and both versions. The URL hash picks the view:
-// none for the main page, #retro or #modern for a game, so either can be
-// bookmarked or linked. In a game, the header button or F2 flips to the
+// none for the main page, #retro or #modern for a game (#vr is the modern
+// version with Enter VR up front), so any of them can be bookmarked or
+// linked. In a game, the header button or F2 flips to the
 // other version. The modern version is only downloaded the first time it's
 // shown, and each version pauses itself when hidden.
 
@@ -18,6 +19,7 @@ const fpsLabel = document.getElementById('fps');
 const help = { retro: document.getElementById('help-retro'), modern: document.getElementById('help-modern') };
 
 let current = null;      // 'home', 'retro' or 'modern'
+let vrFocus = false;     // came in through #vr
 let modern = null;
 let modernFailed = false;
 
@@ -59,6 +61,8 @@ function go(view) {
 
 function viewFromHash() {
   const h = location.hash.slice(1);
+  vrFocus = h === 'vr';
+  if (vrFocus) return 'modern';
   return h === 'retro' || h === 'modern' ? h : 'home';
 }
 
@@ -89,7 +93,7 @@ async function show(view) {
   switchButton.textContent = view === 'retro' ? 'Switch to modern (F2)' : 'Switch to retro (F2)';
   try { localStorage.setItem(VERSION_KEY, view); } catch { /* storage unavailable */ }
   if (view === 'retro') retro.activate();
-  else modern.activate();
+  else modern.activate({ vrFocus });
 }
 
 // Flag the version played last on the main page

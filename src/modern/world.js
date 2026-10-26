@@ -9,7 +9,7 @@ import { SCENERY, SCENERY_INFO, sceneryMaterial, buildPad } from './models.js';
 // own instanced scenery, plus the bases. Also answers "what's near here?"
 // for collisions.
 
-const SCENERY_RADIUS = 4;      // chunks around the player that get scenery
+const SCENERY_RADIUS = 4;      // default chunks around the player that get scenery
 const CELL = 11;               // scenery scatter grid in metres
 
 function detailTexture() {
@@ -140,7 +140,7 @@ export class World {
       const key = `${w.cx},${w.cz}`;
       keep.add(key);
       const lod = w.d <= 2.5 ? 0 : w.d <= 5.5 ? 1 : 2;
-      const scenery = w.d <= SCENERY_RADIUS;
+      const scenery = w.d <= (this.quality.sceneryChunks ?? SCENERY_RADIUS);
       let chunk = this.chunks.get(key);
       if (chunk && chunk.lod === lod && chunk.hasScenery === scenery) continue;
       if (performance.now() - started > budgetMs) continue;

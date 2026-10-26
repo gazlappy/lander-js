@@ -14,6 +14,7 @@ import { CRAFT_BY_ID } from './crafts.js';
 import { HOME } from './bases.js';
 import { heightAt } from './terrain.js';
 import { createMission, FREE_FLIGHT } from './missions.js';
+import { VRMode } from './vr.js';
 
 // The modern version: an open-world Lander in WebGL. This module wires the
 // pieces together and runs the title screen, missions and free flight.
@@ -24,12 +25,17 @@ const DEFAULT_PROGRESS = {
   craft: 'classic',
   completed: {},              // mission id -> best time
   settings: { quality: 'high', camera: 'classic', sensitivity: 1, volume: 0.7, swapButtons: false, showFps: false },
+  vr: { naturalStick: true },
 };
 
 function loadProgress() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    return { ...DEFAULT_PROGRESS, ...stored, settings: { ...DEFAULT_PROGRESS.settings, ...stored.settings } };
+    return {
+      ...DEFAULT_PROGRESS, ...stored,
+      settings: { ...DEFAULT_PROGRESS.settings, ...stored.settings },
+      vr: { ...DEFAULT_PROGRESS.vr, ...stored.vr },
+    };
   } catch { return structuredClone(DEFAULT_PROGRESS); }
 }
 
@@ -76,6 +82,7 @@ export function createModernApp({ container, onSwitch }) {
   let titleAngle = 0;
   const guns = [];
   let fpsFrames = 0, fpsTime = 0;
+  let lastResult = null;
 
   // --- Combat callbacks ----------------------------------------------------------
 
@@ -95,6 +102,7 @@ export function createModernApp({ container, onSwitch }) {
     const events = [];
     ship.damage(amount, events);
     audio.hit();
+    vr.onEvent('hit');
     chase.shake = Math.max(chase.shake, 0.8);
     handleShipEvents(events);
   };
@@ -142,8 +150,14 @@ export function createModernApp({ container, onSwitch }) {
     state = 'playing';
     menus.hide();
     hud.show(true);
-    input.enabled = true;
     input.hoverLatch = false;
+    enableDomInput();
+  }
+
+  // Mouse and keyboard drive the ship unless a VR headset is
+  function enableDomInput() {
+    if (vr.presenting) return;
+    input.enabled = true;
     input.lock();
   }
 
@@ -162,7 +176,8 @@ export function createModernApp({ container, onSwitch }) {
     input.release();
     hud.banner('');
     hud.show(false);
-    menus.show('results', { success, name: def.name, reason: reason || m.reason, time: m.time, reward, bonus });
+    lastResult = { success, name: def.name, reason: reason || m.reason, time: m.time, reward, bonus };
+    menus.show('results', lastResult);
   }
 
   // Back to the title screen's orbiting view of Braben Field
@@ -194,8 +209,7 @@ export function createModernApp({ container, onSwitch }) {
     if (state !== 'paused' && state !== 'deadPaused') return;
     state = state === 'deadPaused' ? 'dead' : 'playing';
     menus.hide();
-    input.enabled = true;
-    input.lock();
+    enableDomInput();
   }
 
   function shipLost() {
@@ -210,6 +224,7 @@ export function createModernApp({ container, onSwitch }) {
 
   function handleShipEvents(events) {
     for (const e of events) {
+      vr.onEvent(e);
       if (e === 'landed') audio.land();
       else if (e === 'scrape') { audio.scrape(); chase.shake = Math.max(chase.shake, 1); }
       else if (e === 'destroyed') {
@@ -229,8 +244,9 @@ export function createModernApp({ container, onSwitch }) {
   // --- Per-frame update ------------------------------------------------------------
 
   function updatePlaying(dt) {
-    const controls = input.read(dt);
-    controls.heading = chase.heading;
+    let controls;
+    if (vr.presenting) controls = vr.readControls(dt);
+    else { controls = input.read(dt); controls.heading = chase.heading; }
     const events = ship.update(dt, controls, game);
     handleShipEvents(events);
     if (ship.destroyed) return;
@@ -240,6 +256,7 @@ export function createModernApp({ container, onSwitch }) {
       combat.firePlayer(ship, ship.gunPositions(guns));
       ship.gunCooldown = ship.craft.gun.interval;
       audio.gun();
+      vr.onEvent('fire');
     }
     emitExhaust(dt);
     const result = game.mission.update(dt);
@@ -281,10 +298,10 @@ export function createModernApp({ container, onSwitch }) {
     camera.lookAt(HOME.pads[0].x, HOME.y + 4, HOME.pads[0].z);
   }
 
+  // setAnimationLoop runs at the display's rate, or the headset's in VR
   let last = 0;
   function frame(now) {
-    requestAnimationFrame(frame);
-    if (!active) { last = now; return; }
+    if (!active && !vr.presenting) { last = now; return; }
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
     if (!dt) return;
@@ -309,13 +326,14 @@ export function createModernApp({ container, onSwitch }) {
       smoulder(dt);
       ship.sync();
     }
-    if (state === 'title') updateTitle(dt);
+    if (vr.presenting) vr.update(dt, ship);
+    else if (state === 'title') updateTitle(dt);
     else if (state !== 'paused' && state !== 'deadPaused') chase.update(dt, ship);
     const focus = state === 'title' ? new THREE.Vector3(HOME.x, HOME.y, HOME.z) : ship.position;
     world.update(focus.x, focus.z);
     environment.update(dt, focus);
     audio.engine(ship.throttle, ship.velocity.length(), state === 'playing');
-    if (state === 'playing' || state === 'dead') hud.update(dt, game);
+    if ((state === 'playing' || state === 'dead') && !vr.presenting) hud.update(dt, game);
     environment.render();
 
     fpsFrames++;
@@ -341,6 +359,8 @@ export function createModernApp({ container, onSwitch }) {
     restart: () => launch(missionDef),
     abandon: () => toTitle(),
     switchVersion: () => onSwitch(),
+    vrSupported: () => vr.supported,
+    enterVr: () => enterVr(),
     buyCraft(id) {
       const c = CRAFT_BY_ID[id];
       if (progress.credits < c.price || progress.owned.includes(id)) return;
@@ -372,6 +392,56 @@ export function createModernApp({ container, onSwitch }) {
     },
   });
 
+  // --- VR ----------------------------------------------------------------------------
+
+  let flatQuality = quality;
+  const vr = new VRMode(renderer, scene, camera, {
+    state: () => state,
+    progress: () => progress,
+    craft: () => ship.craft,
+    mission: () => game.mission,
+    shipsLeft: () => game.shipsLeft,
+    lastResult: () => lastResult,
+    isFree: () => missionDef === FREE_FLIGHT,
+    launch,
+    launchFree: () => launch(FREE_FLIGHT),
+    resume,
+    restart: () => launch(missionDef),
+    abandon: () => toTitle(),
+    pause,
+    saveVr(values) { Object.assign(progress.vr, values); save(); },
+    onSupportChanged: () => menus.refresh(),
+    onViewport: (height, tanHalfFov) => particles.setViewport(height, (Math.atan(tanHalfFov) * 360) / Math.PI),
+    // In the headset: lighter graphics, no mouse, menus on panels
+    onEnter() {
+      audio.start();
+      input.enabled = false;
+      input.release();
+      menus.hide();
+      hud.show(false);
+      flatQuality = quality;
+      quality = QUALITY.vr;
+      environment.setQuality(quality);
+      world.setQuality(quality);
+      preload(ship.position.x, ship.position.z);
+    },
+    onExit() {
+      quality = flatQuality;
+      environment.setQuality(quality);
+      world.setQuality(quality);
+      resize();
+      if (state === 'playing' || state === 'dead') pause();
+      else if (state === 'title') menus.show('title');
+      else if (state === 'results') menus.show('results', lastResult);
+      if (state === 'playing' || state === 'dead') hud.show(true);
+    },
+  });
+  vr.naturalStick = progress.vr.naturalStick;
+
+  async function enterVr() {
+    try { await vr.enter(); } catch (e) { console.error(e); menus.flash?.('Could not start VR'); }
+  }
+
   input.on('pause', pause);
   input.on('camera', () => {
     chase.mode = chase.mode === 'classic' ? 'chase' : 'classic';
@@ -394,19 +464,19 @@ export function createModernApp({ container, onSwitch }) {
   placeShipAtHome();
   preload(HOME.x, HOME.z);
   hud.show(false);
-  requestAnimationFrame(frame);
+  renderer.setAnimationLoop(frame);
 
   return {
-    activate() {
+    activate({ vrFocus = false } = {}) {
       active = true;
       resize();
-      if (state === 'title') menus.show('title');
+      if (state === 'title') menus.show('title', { vrFocus });
     },
     deactivate() {
       if (state === 'playing' || state === 'dead') pause();
       audio.engine(0, 0, false);
       active = false;
     },
-    debug: { game, scene, camera, world, ship, combat, environment, renderer, launch, get state() { return state; } },
+    debug: { game, scene, camera, world, ship, combat, environment, renderer, launch, vr, get state() { return state; } },
   };
 }

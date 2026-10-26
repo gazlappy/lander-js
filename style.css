@@ -78,6 +78,17 @@ body.on-home header h1 { visibility: hidden; }
   content: 'Last played'; position: absolute; top: 12px; right: 12px; font-size: 12px; font-weight: 600;
   padding: 3px 10px; border-radius: 999px; background: rgba(16, 16, 20, 0.85); border: 1px solid var(--accent); color: var(--accent);
 }
+.vr-banner {
+  display: flex; align-items: center; gap: 16px; margin-top: 20px; padding: 14px 20px;
+  color: var(--text); text-decoration: none; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 12px; transition: border-color 0.18s ease;
+}
+.vr-banner:hover, .vr-banner:focus-visible { border-color: var(--accent); outline: none; }
+.vr-banner > span:nth-child(2) { flex: 1; color: var(--muted); }
+.vr-banner strong { color: var(--text); }
+.vr-badge { font-weight: 800; letter-spacing: 0.08em; padding: 6px 10px; border-radius: 8px; background: rgba(95, 209, 107, 0.16); color: var(--accent); }
+.vr-banner .version-play { white-space: nowrap; }
+@media (max-width: 560px) { .vr-banner { flex-wrap: wrap; } }
 .home-note { text-align: center; color: var(--muted); font-size: 14px; margin: 22px 0 0; }
 
 #stage {

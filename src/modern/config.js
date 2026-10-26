@@ -38,6 +38,9 @@ export const QUALITY = {
   medium: { label: 'Medium', viewChunks: 7, segments: 24, shadows: true, shadowSize: 1024, reflections: false, bloom: true, pixelRatio: 1.25 },
   high: { label: 'High', viewChunks: 9, segments: 32, shadows: true, shadowSize: 2048, reflections: true, bloom: true, pixelRatio: 1.5 },
   ultra: { label: 'Ultra', viewChunks: 12, segments: 32, shadows: true, shadowSize: 4096, reflections: true, bloom: true, pixelRatio: 2 },
+  // Used automatically in a VR headset: Quest-class hardware draws every
+  // frame twice at 72-90 Hz, so detail, scenery range and effects come down
+  vr: { label: 'VR', viewChunks: 6, segments: 16, sceneryChunks: 3, shadows: false, reflections: false, bloom: false, pixelRatio: 1 },
 };
 
 export const STORAGE_KEY = 'lander-modern';

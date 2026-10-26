@@ -162,13 +162,14 @@ export class Environment {
     this.water.position.z = Math.round(focus.z / 64) * 64;
     if (this.water.material.uniforms?.time) this.water.material.uniforms.time.value += dt * 0.6;
     else if (this.water.material.normalMap) this.water.material.normalMap.offset.x += dt * 0.004;
-    this.sky.position.copy(this.camera.position);
+    this.camera.getWorldPosition(this.sky.position);
     this.sun.position.copy(focus).addScaledVector(this.sunDirection, 500);
     this.sun.target.position.copy(focus);
   }
 
   render() {
-    if (this.composer) this.composer.render();
+    // Post-processing can't draw into a headset, so VR renders directly
+    if (this.composer && !this.renderer.xr.isPresenting) this.composer.render();
     else this.renderer.render(this.scene, this.camera);
   }
 }

@@ -75,6 +75,7 @@ export class Menus {
       case 'restart': a.restart(); break;
       case 'abandon': a.abandon(); break;
       case 'retro': a.switchVersion(); break;
+      case 'vr': a.enterVr(); break;
       case 'back': this.show(this.data.from || 'title'); break;
       default: break;
     }
@@ -95,6 +96,8 @@ export class Menus {
       <h1 class="logo">LANDER</h1>
       <div class="tagline">Open world</div>
       <div class="menu-buttons">
+        ${this.actions.vrSupported() ? `<button class="${this.data.vrFocus ? 'primary' : ''}" data-action="vr">Enter VR</button>` : ''}
+        ${this.data.vrFocus && !this.actions.vrSupported() ? '<p class="warn">No VR headset found. Open this page in the Meta Quest browser to play in VR.</p>' : ''}
         <button data-action="screen" data-arg="missions">Missions</button>
         <button data-action="free">Free flight</button>
         <button data-action="screen" data-arg="hangar">Hangar</button>
@@ -169,7 +172,7 @@ export class Menus {
       <div class="options-grid">
         <label>Graphics
           <select data-setting="quality">
-            ${Object.entries(QUALITY).map(([k, q]) => `<option value="${k}" ${s.quality === k ? 'selected' : ''}>${q.label}</option>`).join('')}
+            ${Object.entries(QUALITY).filter(([k]) => k !== 'vr').map(([k, q]) => `<option value="${k}" ${s.quality === k ? 'selected' : ''}>${q.label}</option>`).join('')}
           </select>
         </label>
         <label>Camera
@@ -210,6 +213,7 @@ export class Menus {
         <button data-action="resume">Resume</button>
         ${free ? '' : '<button data-action="restart">Restart mission</button>'}
         <button data-action="screen" data-arg="options">Options</button>
+        ${this.actions.vrSupported() ? '<button data-action="vr">Enter VR</button>' : ''}
         <button data-action="abandon">${free ? 'Return to menu' : 'Abandon mission'}</button>
       </div>`;
   }
