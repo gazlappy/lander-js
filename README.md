@@ -1,7 +1,10 @@
 # Lander, in the browser: retro and modern
 
 Two takes on David Braben's *Lander* (Acorn Archimedes, 1987) on one page.
-Switch between them with the button in the header or **F2**. Each version
+The site opens on a main page where you pick a version. Each version has
+its own address (`#retro`, `#modern`), so you can bookmark or link straight
+to either. In a game, the header button or **F2** flips to the other
+version, and **Main page** (or the LANDER title) goes back. Each version
 pauses itself when you switch away and picks up where it left off.
 
 * **Retro**: a faithful, from-scratch remake of the 1987 game, checked
@@ -72,6 +75,9 @@ safe. Sit on a friendly pad to refuel and repair.
 ### Code layout
 
 ```
+src/shell.js       main page and routing between the two versions
+assets/            the screenshots on the main page
+
 src/modern/
   app.js           wires everything together; title, missions, free flight, saving
   config.js        world size, physics limits, graphics presets

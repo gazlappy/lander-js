@@ -17,53 +17,100 @@
 <body>
 <main>
   <header>
-    <h1>LANDER</h1>
+    <h1><a id="home-link" href="#">LANDER</a></h1>
     <div class="header-right">
       <div id="fps"></div>
-      <button id="switch">Switch version</button>
+      <a id="back" class="header-button" href="#" hidden>Main page</a>
+      <button id="switch" class="header-button" hidden>Switch version</button>
     </div>
   </header>
 
-  <div id="stage">
-    <div id="retro" class="version" hidden>
-      <canvas id="retro-screen"></canvas>
+  <section id="home" class="home" hidden>
+    <div class="home-hero">
+      <div class="home-logo">LANDER</div>
+      <p class="home-tag">David Braben's 1987 Archimedes classic, twice over. Pick how you want to fly.</p>
     </div>
-    <div id="modern" class="version" hidden>
-      <canvas class="modern-canvas"></canvas>
-      <div class="modern-hud"></div>
-      <div class="modern-menus"></div>
-      <div class="modern-loading">Loading the open world...</div>
+    <div class="version-cards">
+      <a class="version-card" href="#retro" data-version="retro">
+        <div class="version-shot retro">
+          <img src="assets/retro-preview.png" width="640" height="512"
+            alt="The retro version: the ship banking over the launchpad and its rockets, in the original's blocky 256-colour graphics">
+        </div>
+        <div class="version-body">
+          <div class="version-kicker">1987</div>
+          <h2>Retro</h2>
+          <p>The original game rebuilt from scratch, checked frame by frame against the real 1987 code.</p>
+          <ul>
+            <li>The original physics, landscape and scoring</li>
+            <li>Archimedes graphics at 320×256, or sharper</li>
+            <li>Save and carry on any time</li>
+          </ul>
+          <span class="version-play">Play retro</span>
+        </div>
+      </a>
+      <a class="version-card" href="#modern" data-version="modern">
+        <div class="version-shot modern">
+          <img src="assets/modern-preview.jpg" width="1231" height="692"
+            alt="The modern version: the ship hovering over a forest near Braben Field, with hangars, rockets and a mountain behind">
+        </div>
+        <div class="version-body">
+          <div class="version-kicker">Open world</div>
+          <h2>Modern</h2>
+          <p>The same ship and handling, let loose on a 4.5 km island with missions, new craft and combat.</p>
+          <ul>
+            <li>Seven missions plus free flight</li>
+            <li>Four craft to buy in the hangar</li>
+            <li>Real-time lighting, shadows and a reflective sea</li>
+          </ul>
+          <span class="version-play">Play modern</span>
+        </div>
+      </a>
     </div>
+    <p class="home-note">Switch between them any time with F2. Each keeps its own progress.</p>
+  </section>
+
+  <div id="game" hidden>
+    <div id="stage">
+      <div id="retro" class="version" hidden>
+        <canvas id="retro-screen"></canvas>
+      </div>
+      <div id="modern" class="version" hidden>
+        <canvas class="modern-canvas"></canvas>
+        <div class="modern-hud"></div>
+        <div class="modern-menus"></div>
+        <div class="modern-loading">Loading the open world...</div>
+      </div>
+    </div>
+
+    <section id="help-modern" hidden>
+      <h2>How to fly</h2>
+      <table>
+        <tr><td>Mouse / WASD</td><td>Tilt the ship, exactly as in the 1987 original: how far the mouse is from the centre sets the tilt, the direction sets which way (R recentres)</td></tr>
+        <tr><td>Left button / Space / Z</td><td>Full thrust</td></tr>
+        <tr><td>Middle button / Shift</td><td>Hover (gentle thrust, as the original). H toggles an optional hover hold that keeps your height</td></tr>
+        <tr><td>Right button / F / X</td><td>Fire</td></tr>
+        <tr><td>C / M</td><td>Switch camera / enlarge the map</td></tr>
+        <tr><td>Esc / P</td><td>Pause</td></tr>
+      </table>
+      <p class="muted">Touch down gently (the LAND light turns green) and level. Sit on a friendly pad to refuel and repair.
+        Missions earn credits to buy new craft in the hangar.</p>
+    </section>
+
+    <section id="help-retro" hidden>
+      <h2>How to play</h2>
+      <table>
+        <tr><td>Mouse position</td><td>Tilt the ship: how far from the centre sets the tilt, the direction sets which way</td></tr>
+        <tr><td>Left button / Z</td><td>Full thrust</td></tr>
+        <tr><td>Middle button / Space</td><td>Hover</td></tr>
+        <tr><td>Right button / X</td><td>Fire (costs a point per shot)</td></tr>
+        <tr><td>Esc / P</td><td>Pause and open the menu</td></tr>
+      </table>
+      <p class="muted">Game speed, resolution, colours and mouse speed are in Options. Your game is saved when
+        you pause or leave the page, so Continue picks up where you left off.</p>
+      <p class="muted">Shoot trees and buildings for 20 points each. Land gently on the grey launchpad to refuel.
+        Score 800 or more and rocks start falling from the sky, and gravity gets stronger at 1024 and 1488.</p>
+    </section>
   </div>
-
-  <section id="help-modern" hidden>
-    <h2>How to fly</h2>
-    <table>
-      <tr><td>Mouse / WASD</td><td>Tilt the ship, exactly as in the 1987 original: how far the mouse is from the centre sets the tilt, the direction sets which way (R recentres)</td></tr>
-      <tr><td>Left button / Space / Z</td><td>Full thrust</td></tr>
-      <tr><td>Middle button / Shift</td><td>Hover (gentle thrust, as the original). H toggles an optional hover hold that keeps your height</td></tr>
-      <tr><td>Right button / F / X</td><td>Fire</td></tr>
-      <tr><td>C / M</td><td>Switch camera / enlarge the map</td></tr>
-      <tr><td>Esc / P</td><td>Pause</td></tr>
-    </table>
-    <p class="muted">Touch down gently (the LAND light turns green) and level. Sit on a friendly pad to refuel and repair.
-      Missions earn credits to buy new craft in the hangar.</p>
-  </section>
-
-  <section id="help-retro" hidden>
-    <h2>How to play</h2>
-    <table>
-      <tr><td>Mouse position</td><td>Tilt the ship: how far from the centre sets the tilt, the direction sets which way</td></tr>
-      <tr><td>Left button / Z</td><td>Full thrust</td></tr>
-      <tr><td>Middle button / Space</td><td>Hover</td></tr>
-      <tr><td>Right button / X</td><td>Fire (costs a point per shot)</td></tr>
-      <tr><td>Esc / P</td><td>Pause and open the menu</td></tr>
-    </table>
-    <p class="muted">Game speed, resolution, colours and mouse speed are in Options. Your game is saved when
-      you pause or leave the page, so Continue picks up where you left off.</p>
-    <p class="muted">Shoot trees and buildings for 20 points each. Land gently on the grey launchpad to refuel.
-      Score 800 or more and rocks start falling from the sky, and gravity gets stronger at 1024 and 1488.</p>
-  </section>
 
   <footer class="muted">
     Two takes on David Braben's Lander (Acorn Archimedes, 1987): a faithful retro remake and a modern open-world
