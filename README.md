@@ -1,7 +1,8 @@
 # Lander, in the browser: retro and modern
 
 Two takes on David Braben's *Lander* (Acorn Archimedes, 1987) on one page.
-The site opens on a main page where you pick a version. Each version has
+The site opens on a main page where you pick a version, or play the modern
+one in VR on a Meta Quest. Each version has
 its own address (`#retro`, `#modern`), so you can bookmark or link straight
 to either. In a game, the header button or **F2** flips to the other
 version, and **Main page** (or the LANDER title) goes back. Each version
@@ -72,6 +73,33 @@ safe. Sit on a friendly pad to refuel and repair.
 * **Progress**: credits, owned craft, completed missions, best times and
   settings are saved in the browser.
 
+### VR (Meta Quest 3 / 3S)
+
+Open the site in the **Meta Quest browser** and pick *Play in VR* on the
+main page (or go straight to `#vr`). Then press **Enter VR**. You hover
+in the sky behind the ship, like the original's camera, with a fixed
+heading for comfort. The ship flies exactly as it does on the desktop,
+through the same virtual mouse.
+
+| Touch controller | Action |
+|------------------|--------|
+| Right stick      | Tilt the ship (forward flies away from you; VR options can switch to the original mouse direction) |
+| Right trigger    | Full thrust |
+| Either grip      | Hover |
+| Left trigger     | Fire |
+| A                | Hover hold on/off |
+| B or Y           | Pause menu |
+| Left stick       | Snap turn 45 degrees |
+| Point + trigger  | Choose in menus |
+
+In the headset, the HUD is a panel below your view, with an arrow to the
+current objective. Mission targets get floating markers, and menus are
+panels you point at. The controllers rumble with the engine, on hits and
+on crashes. A lighter **VR** graphics preset is used automatically: shorter
+view distance, no shadows, sea reflections or bloom. It goes back to your
+desktop setting when you leave VR. Any WebXR headset should work; it was
+developed against Meta's Quest 3 emulator (iwer).
+
 ### Code layout
 
 ```
@@ -97,6 +125,7 @@ src/modern/
   hud.js           gauges, objective, 3D markers, gunsight, minimap
   menus.js         title, missions, hangar, options, credits, pause, results
   audio.js         WebAudio synthesis: engine, wind, guns, explosions, cues
+  vr.js            WebXR mode: camera rig, Touch controllers, haptics, HUD and menu panels
 ```
 
 To add a mission, subclass `Mission` in `missions.js` (`start`, `update`
